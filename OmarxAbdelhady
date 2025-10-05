@@ -396,7 +396,6 @@
         let pomodoroInterval;
         let isPomodoroRunning = false;
         let isPomodoroPaused = false;
-        let lastUpdateTime = 0;
         
         // تحميل الفيديو كخلفية
         videoUpload.addEventListener('change', function(e) {
@@ -467,16 +466,17 @@
                 secondsInput.disabled = true;
                 pomodoroTimer.classList.add('pomodoro-active');
                 
-                lastUpdateTime = Date.now();
+                // استخدام requestAnimationFrame لتحديث المؤقت بدقة
+                let lastTime = Date.now();
                 
                 function updateTimer() {
                     if (!isPomodoroRunning || isPomodoroPaused) return;
                     
                     const currentTime = Date.now();
-                    const elapsed = Math.floor((currentTime - lastUpdateTime) / 1000);
+                    const elapsed = Math.floor((currentTime - lastTime) / 1000);
                     
                     if (elapsed >= 1) {
-                        lastUpdateTime = currentTime;
+                        lastTime = currentTime;
                         
                         if (pomodoroTime > 0) {
                             pomodoroTime--;
@@ -502,6 +502,13 @@
                     pomodoroInterval = requestAnimationFrame(updateTimer);
                 }
                 
+                function clearPomodoroInterval() {
+                    if (pomodoroInterval) {
+                        cancelAnimationFrame(pomodoroInterval);
+                        pomodoroInterval = null;
+                    }
+                }
+                
                 updateTimer();
             }
         }
@@ -510,16 +517,19 @@
             if (isPomodoroRunning && !isPomodoroPaused) {
                 isPomodoroPaused = true;
                 pausePomodoroBtn.textContent = 'متابعة';
-            } else if (isPomodoroRunning && isPomodoroPaused) {
+            } else if (isPomodoroPaused) {
                 isPomodoroPaused = false;
                 pausePomodoroBtn.textContent = 'إيقاف';
-                lastUpdateTime = Date.now(); // تحديث وقت البدء من جديد
-                startPomodoro(); // استئناف المؤقت
+                startPomodoro();
             }
         }
         
         function resetPomodoro() {
-            clearPomodoroInterval();
+            if (pomodoroInterval) {
+                cancelAnimationFrame(pomodoroInterval);
+                pomodoroInterval = null;
+            }
+            
             updatePomodoroTimeFromInputs();
             isPomodoroRunning = false;
             isPomodoroPaused = false;
@@ -531,13 +541,6 @@
             secondsInput.disabled = false;
             pomodoroTimer.classList.remove('pomodoro-active');
             updatePomodoroDisplay();
-        }
-        
-        function clearPomodoroInterval() {
-            if (pomodoroInterval) {
-                cancelAnimationFrame(pomodoroInterval);
-                pomodoroInterval = null;
-            }
         }
         
         function updatePomodoroDisplay() {
